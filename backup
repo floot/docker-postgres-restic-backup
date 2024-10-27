@@ -26,7 +26,7 @@ file_env() {
 
 rm -rf /var/opt/pg_backup/*
 
-# Requires the following env variables to be set:
+# Requires the following env variables to be set, or their *_FILE equivalent:
 #
 file_env PGHOST
 file_env PGUSER
@@ -35,9 +35,9 @@ file_env PGDATABASE
 
 pg_dump --format=plain --inserts --rows-per-insert=100 | bzip2 > /var/opt/pg_backup/backup.sql.bz2
 
-# Requires the following env variables to be set:
+# Requires the following env variables to be set, or their *_FILE equivalent:
 #
-file_env RESTIC_REPOSTIORY
+file_env RESTIC_REPOSITORY
 file_env RESTIC_PASSWORD
 file_env AWS_ACCESS_KEY_ID
 file_env AWS_SECRET_ACCESS_KEY
