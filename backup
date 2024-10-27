@@ -1,24 +1,49 @@
-#!/bin/sh
+#!/bin/bash
 
 set -e
 
-rm -rf /var/opt/pg_backup
-mkdir -p /var/opt/pg_backup
+# usage: file_env VAR [DEFAULT]
+#    ie: file_env 'XYZ_DB_PASSWORD' 'example'
+# (will allow for "$XYZ_DB_PASSWORD_FILE" to fill in the value of
+#  "$XYZ_DB_PASSWORD" from a file, especially for Docker's secrets feature)
+file_env() {
+	local var="$1"
+	local fileVar="${var}_FILE"
+	local def="${2:-}"
+	if [ "${!var:-}" ] && [ "${!fileVar:-}" ]; then
+		printf >&2 'error: both %s and %s are set (but are exclusive)\n' "$var" "$fileVar"
+		exit 1
+	fi
+	local val="$def"
+	if [ "${!var:-}" ]; then
+		val="${!var}"
+	elif [ "${!fileVar:-}" ]; then
+		val="$(< "${!fileVar}")"
+	fi
+	export "$var"="$val"
+	unset "$fileVar"
+}
+
+rm -rf /var/opt/pg_backup/*
 
 # Requires the following env variables to be set:
 #
-# PGHOST
-# PGUSER
-# PGPASSWORD
-# PGDATABASE
+file_env PGHOST
+file_env PGUSER
+file_env PGPASSWORD
+file_env PGDATABASE
 
-pg_dump --format=plain --inserts --rows-per-insert=100 > /var/opt/pg_backup/backup.sql
+pg_dump --format=plain --inserts --rows-per-insert=100 | bzip2 > /var/opt/pg_backup/backup.sql.bz2
 
 # Requires the following env variables to be set:
 #
-# RESTIC_REPOSTIORY
-# RESTIC_PASSWORD
-# AWS_ACCESS_KEY_ID
-# AWS_SECRET_ACCESS_KEY
+file_env RESTIC_REPOSTIORY
+file_env RESTIC_PASSWORD
+file_env AWS_ACCESS_KEY_ID
+file_env AWS_SECRET_ACCESS_KEY
 
 restic backup /var/opt/pg_backup
+restic forget --prune --keep-daily 7 --keep-weekly 8 --keep-monthly 6
+curl -d "Sauvegarde base de données sharednextcloud OK" $NOTIFY_URL
+
+rm -rf /var/opt/pg_backup/*
