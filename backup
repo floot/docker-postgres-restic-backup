@@ -33,7 +33,7 @@ file_env PGUSER
 file_env PGPASSWORD
 file_env PGDATABASE
 
-pg_dump --format=plain --inserts --rows-per-insert=100 | bzip2 > /var/opt/pg_backup/backup.sql.bz2
+pg_dumpall --inserts --rows-per-insert=100 | bzip2 > /var/opt/pg_backup/backup.sql.bz2
 
 # Requires the following env variables to be set, or their *_FILE equivalent:
 #
